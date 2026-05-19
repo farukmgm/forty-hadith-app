@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forty Hadith Annawawi - Home</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 600px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            margin: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+        .status {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            text-align: left;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .status h3 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+        .status p {
+            margin: 5px 0;
+            color: #558b2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌙 Forty Hadith Annawawi</h1>
+        <p>Welcome to your personal learning platform for continuous application of Islamic wisdom.</p>
+        
+        <div class="status">
+            <h3>✅ System Status</h3>
+            <p>✓ Flask application running</p>
+            <p>✓ Database initialized</p>
+            <p>✓ Models and routes configured</p>
+            <p>🔄 Phase 1: Setup Complete</p>
+        </div>
+
+        <p>Learn and apply the 40 Hadith of Imam An-Nawawi through daily reviews, personal reflections, and progress tracking.</p>
+        
+        <div>
+            <a href="/auth/register" class="btn btn-primary">Register</a>
+            <a href="/auth/login" class="btn btn-primary">Login</a>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 30px; border-top: 1px solid #eee; color: #999; font-size: 14px;">
+            <p>CS50x Final Project | Built with Flask, SQLAlchemy, and JavaScript</p>
+        </div>
+    </div>
+</body>
+</html>
