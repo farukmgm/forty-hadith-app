@@ -290,7 +290,7 @@ A web application built with Python (Flask), SQL, and JavaScript to help users l
 
 **Start Date:** 2026-05-18  
 **Phases Completed:** 1/17  
-**Current Phase:** Phase 3 (Data Seeding)  
+**Current Phase:** Phase 2 (Database Design & Setup)  
 **Estimated Completion:** ~4-5 weeks  
 
 | Phase | Name | Status |
