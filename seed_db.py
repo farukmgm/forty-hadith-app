@@ -14,20 +14,27 @@ from app.models import Hadith
 # Create app context
 app = create_app(os.getenv('FLASK_ENV', 'development'))
 
-# URL to the hadith-json repository (Forty Hadith Annawawi)
-HADITH_JSON_URL = "https://raw.githubusercontent.com/ahadith/hadith-json/master/en/40-Hadith-Nawawi.json"
+# URLs to hadith data (primary and fallback)
+HADITH_JSON_URLS = [
+    "https://uthumany.github.io/nawawi-40-hadiths/api/hadiths.json",  # Primary source
+    "https://raw.githubusercontent.com/uthumany/nawawi-40-hadiths/main/data/hadiths.json",  # Fallback
+]
 
 def download_hadith_json():
-    """Download hadith JSON from repository"""
-    print("📥 Downloading hadith data from hadith-json repository...")
-    try:
-        response = requests.get(HADITH_JSON_URL, timeout=10)
-        response.raise_for_status()
-        print("✅ Downloaded successfully!")
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error downloading hadith data: {e}")
-        return None
+    """Download hadith JSON from repository with fallback URLs"""
+    for url in HADITH_JSON_URLS:
+        print(f"📥 Downloading hadith data from: {url}")
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
+            print("✅ Downloaded successfully!")
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️  Failed to download from {url}: {e}")
+            continue
+    
+    print("❌ Error: Could not download hadith data from any source")
+    return None
 
 def parse_hadith_data(hadith_json):
     """
@@ -46,9 +53,16 @@ def parse_hadith_data(hadith_json):
         hadith_list = hadith_json
     elif isinstance(hadith_json, dict) and 'hadiths' in hadith_json:
         hadith_list = hadith_json['hadiths']
+    elif isinstance(hadith_json, dict) and 'data' in hadith_json:
+        hadith_list = hadith_json['data']
     elif isinstance(hadith_json, dict):
         # Try to find hadiths in the dict
-        hadith_list = list(hadith_json.values())[0] if hadith_json else []
+        for key in ['items', 'content', 'hadiths', 'data']:
+            if key in hadith_json and isinstance(hadith_json[key], list):
+                hadith_list = hadith_json[key]
+                break
+        else:
+            hadith_list = list(hadith_json.values())[0] if hadith_json else []
     else:
         print("❌ Unexpected JSON structure")
         return hadiths
@@ -57,11 +71,39 @@ def parse_hadith_data(hadith_json):
     
     for hadith in hadith_list:
         try:
-            # Extract and normalize fields
-            hadith_number = hadith.get('id') or hadith.get('number') or hadith.get('hadithNumber')
-            arabic_text = hadith.get('ar_text') or hadith.get('arabic') or hadith.get('text_ar') or ""
-            english_text = hadith.get('en_text') or hadith.get('english') or hadith.get('text') or ""
-            narrator = hadith.get('narrator') or hadith.get('grading') or ""
+            # Extract and normalize fields - try multiple possible field names
+            hadith_number = (
+                hadith.get('id') or 
+                hadith.get('number') or 
+                hadith.get('hadithNumber') or
+                hadith.get('hadith_number') or
+                hadith.get('no')
+            )
+            
+            arabic_text = (
+                hadith.get('ar_text') or 
+                hadith.get('arabic') or 
+                hadith.get('text_ar') or 
+                hadith.get('arabicText') or
+                hadith.get('text') or
+                ""
+            )
+            
+            english_text = (
+                hadith.get('en_text') or 
+                hadith.get('english') or 
+                hadith.get('englishText') or
+                hadith.get('translation') or
+                hadith.get('text') or
+                ""
+            )
+            
+            narrator = (
+                hadith.get('narrator') or 
+                hadith.get('grading') or 
+                hadith.get('source') or
+                ""
+            )
             
             # Skip if missing critical fields
             if not hadith_number or not english_text:
