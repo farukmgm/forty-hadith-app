@@ -48,21 +48,13 @@ def parse_hadith_data(hadith_json):
         print("❌ No data to parse")
         return hadiths
     
-    # Check if it's a list or dict
-    if isinstance(hadith_json, list):
-        hadith_list = hadith_json
-    elif isinstance(hadith_json, dict) and 'hadiths' in hadith_json:
+    # Extract the hadiths array from the JSON structure
+    hadith_list = []
+    
+    if isinstance(hadith_json, dict) and 'hadiths' in hadith_json:
         hadith_list = hadith_json['hadiths']
-    elif isinstance(hadith_json, dict) and 'data' in hadith_json:
-        hadith_list = hadith_json['data']
-    elif isinstance(hadith_json, dict):
-        # Try to find hadiths in the dict
-        for key in ['items', 'content', 'hadiths', 'data']:
-            if key in hadith_json and isinstance(hadith_json[key], list):
-                hadith_list = hadith_json[key]
-                break
-        else:
-            hadith_list = list(hadith_json.values())[0] if hadith_json else []
+    elif isinstance(hadith_json, list):
+        hadith_list = hadith_json
     else:
         print("❌ Unexpected JSON structure")
         return hadiths
@@ -71,56 +63,36 @@ def parse_hadith_data(hadith_json):
     
     for hadith in hadith_list:
         try:
-            # Extract and normalize fields - try multiple possible field names
-            hadith_number = (
-                hadith.get('id') or 
-                hadith.get('number') or 
-                hadith.get('hadithNumber') or
-                hadith.get('hadith_number') or
-                hadith.get('no')
-            )
-            
-            arabic_text = (
-                hadith.get('ar_text') or 
-                hadith.get('arabic') or 
-                hadith.get('text_ar') or 
-                hadith.get('arabicText') or
-                hadith.get('text') or
-                ""
-            )
-            
-            english_text = (
-                hadith.get('en_text') or 
-                hadith.get('english') or 
-                hadith.get('englishText') or
-                hadith.get('translation') or
-                hadith.get('text') or
-                ""
-            )
-            
-            narrator = (
-                hadith.get('narrator') or 
-                hadith.get('grading') or 
-                hadith.get('source') or
-                ""
-            )
+            # Extract fields based on the actual JSON structure from uthumany/nawawi-40-hadiths
+            hadith_number = hadith.get('hadith_number') or hadith.get('id') or hadith.get('number')
+            arabic_text = hadith.get('arabic_text') or hadith.get('arabic') or ""
+            english_text = hadith.get('english_translation') or hadith.get('english') or hadith.get('text') or ""
+            narrator = hadith.get('narrator') or hadith.get('grading') or ""
+            title = hadith.get('title') or ""
+            source = hadith.get('source') or ""
             
             # Skip if missing critical fields
             if not hadith_number or not english_text:
+                print(f"⚠️  Skipping hadith with missing fields: {hadith.get('hadith_number', 'unknown')}")
                 continue
+            
+            # Combine source and title for book reference if available
+            book_reference = 'Book 15: Forty Hadith of al-Nawawi'
+            if source:
+                book_reference = f"{source} - {title}" if title else source
             
             hadith_obj = {
                 'hadith_number': int(hadith_number),
                 'arabic_text': arabic_text.strip() if arabic_text else "Arabic text not available",
                 'english_text': english_text.strip(),
                 'narrator': narrator.strip() if narrator else "Unknown",
-                'book_reference': 'Book 15: Forty Hadith of al-Nawawi',
+                'book_reference': book_reference,
                 'source_url': f'https://sunnah.com/nawawi/{hadith_number}'
             }
             
             hadiths.append(hadith_obj)
         except Exception as e:
-            print(f"⚠️  Error parsing hadith {hadith.get('id', 'unknown')}: {e}")
+            print(f"⚠️  Error parsing hadith {hadith.get('hadith_number', 'unknown')}: {e}")
             continue
     
     # Sort by hadith number
@@ -181,19 +153,20 @@ def verify_seeding():
             print("❌ No hadiths found in database!")
             return False
         
-        if total_count != 40:
-            print(f"⚠️  Expected 40 hadiths, but found {total_count}")
+        if total_count != 42:
+            print(f"⚠️  Expected 42 hadiths, but found {total_count}")
+        else:
+            print(f"✅ All 42 hadiths imported successfully!")
         
         # Spot-check some hadiths
         print("\n📋 Spot-checking hadiths:")
-        for hadith_num in [1, 20, 40]:
+        for hadith_num in [1, 21, 42]:
             hadith = Hadith.query.filter_by(hadith_number=hadith_num).first()
             if hadith:
-                print(f"\n  Hadith #{hadith.hadith_number}:")
-                print(f"    Narrator: {hadith.narrator}")
-                print(f"    English: {hadith.english_text[:100]}...")
+                print(f"\n  Hadith #{hadith.hadith_number}: {hadith.narrator}")
+                print(f"    English: {hadith.english_text[:80]}...")
                 if hadith.arabic_text and hadith.arabic_text != "Arabic text not available":
-                    print(f"    Arabic: {hadith.arabic_text[:100]}...")
+                    print(f"    Arabic: {hadith.arabic_text[:80]}...")
             else:
                 print(f"  ❌ Hadith #{hadith_num} not found!")
         
@@ -208,7 +181,7 @@ def main():
         print("\nUsage: python seed_db.py [command]")
         print("\nCommands:")
         print("  download    - Download hadith JSON from repository")
-        print("  seed        - Download and seed database with all 40 hadiths")
+        print("  seed        - Download and seed database with all hadiths")
         print("  verify      - Verify seeded data")
         print("  reset-seed  - Clear database and reseed")
         print("\nExamples:")
@@ -226,7 +199,7 @@ def main():
             for h in parsed[:3]:
                 print(f"\n  Hadith #{h['hadith_number']}:")
                 print(f"    Narrator: {h['narrator']}")
-                print(f"    English: {h['english_text'][:100]}...")
+                print(f"    English: {h['english_text'][:80]}...")
     
     elif command == 'seed':
         hadith_data = download_hadith_json()
