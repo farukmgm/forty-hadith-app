@@ -36,11 +36,10 @@ def create_app(config_name='development'):
             return User.query.get(int(user_id))
     
     # Register blueprints
-    from app.routes import main_bp, auth_bp, hadith_bp, progress_bp, stats_bp
+    from app.auth import auth_bp
+    from app.main import main_bp
+    
     app.register_blueprint(main_bp)
-    app.register_blueprint(auth_bp, url_prefix='/auth')
-    app.register_blueprint(hadith_bp, url_prefix='/hadiths')
-    app.register_blueprint(progress_bp, url_prefix='/progress')
-    app.register_blueprint(stats_bp, url_prefix='/stats')
+    app.register_blueprint(auth_bp)
     
     return app
