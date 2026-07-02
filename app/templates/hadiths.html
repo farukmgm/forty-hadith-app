@@ -1,0 +1,340 @@
+{% extends 'base.html' %}
+
+{% block title %}Hadiths - Forty Hadith App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hadith-card {
+        border-left: 4px solid #2c5282;
+        margin-bottom: 20px;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .hadith-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .hadith-number {
+        background-color: #2c5282;
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 15px;
+    }
+    
+    .arabic-text {
+        font-family: 'Arial', sans-serif;
+        font-size: 1.1rem;
+        text-align: right;
+        direction: rtl;
+        color: #1a202c;
+        margin: 15px 0;
+        line-height: 1.8;
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 5px;
+    }
+    
+    .english-text {
+        font-size: 1rem;
+        color: #2d3748;
+        margin: 10px 0;
+        line-height: 1.6;
+    }
+    
+    .narrator {
+        font-size: 0.9rem;
+        color: #718096;
+        font-style: italic;
+        margin-top: 10px;
+    }
+    
+    .search-section {
+        background-color: #edf2f7;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+    }
+    
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 400px;
+    }
+    
+    .loading-spinner .spinner-border {
+        color: #2c5282;
+    }
+    
+    .pagination-info {
+        text-align: center;
+        margin: 20px 0;
+        color: #718096;
+    }
+    
+    .btn-action {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+    
+    .action-buttons {
+        margin-top: 10px;
+        display: flex;
+        gap: 10px;
+    }
+    
+    .reflection-area {
+        margin-top: 15px;
+        display: none;
+    }
+    
+    .reflection-area.show {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">📚 The Forty Hadiths Annawawi</h1>
+    
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="row">
+            <div class="col-md-8">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="form-control" 
+                    placeholder="🔍 Search hadiths by keyword, narrator, or number..."
+                >
+            </div>
+            <div class="col-md-4">
+                <button id="searchBtn" class="btn btn-primary w-100">Search</button>
+                <button id="clearBtn" class="btn btn-secondary w-100 mt-2">Clear</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Spinner -->
+    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+    
+    <!-- Hadiths Container -->
+    <div id="hadithsContainer"></div>
+    
+    <!-- Pagination Info -->
+    <div class="pagination-info" id="paginationInfo"></div>
+    
+    <!-- Pagination Controls -->
+    <nav aria-label="Hadith pagination" id="paginationNav" style="display: none;">
+        <ul class="pagination justify-content-center">
+            <li class="page-item" id="prevPageItem">
+                <a class="page-link" href="#" id="prevPageBtn">Previous</a>
+            </li>
+            <li class="page-item disabled">
+                <span class="page-link" id="pageInfo">Page 1</span>
+            </li>
+            <li class="page-item" id="nextPageItem">
+                <a class="page-link" href="#" id="nextPageBtn">Next</a>
+            </li>
+        </ul>
+    </nav>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentPage = 1;
+    let currentSearchTerm = '';
+    const HADITHS_PER_PAGE = 5;
+    
+    // Load hadiths on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadHadiths();
+    });
+    
+    // Event listeners
+    document.getElementById('searchBtn').addEventListener('click', function() {
+        currentSearchTerm = document.getElementById('searchInput').value;
+        currentPage = 1;
+        loadHadiths();
+    });
+    
+    document.getElementById('clearBtn').addEventListener('click', function() {
+        document.getElementById('searchInput').value = '';
+        currentSearchTerm = '';
+        currentPage = 1;
+        loadHadiths();
+    });
+    
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('searchBtn').click();
+        }
+    });
+    
+    document.getElementById('prevPageBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (currentPage > 1) {
+            currentPage--;
+            loadHadiths();
+            window.scrollTo(0, 0);
+        }
+    });
+    
+    document.getElementById('nextPageBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        currentPage++;
+        loadHadiths();
+        window.scrollTo(0, 0);
+    });
+    
+    async function loadHadiths() {
+        const spinner = document.getElementById('loadingSpinner');
+        const container = document.getElementById('hadithsContainer');
+        spinner.style.display = 'flex';
+        container.innerHTML = '';
+        
+        try {
+            // Build API URL
+            let url = `/api/hadiths?page=${currentPage}&per_page=${HADITHS_PER_PAGE}`;
+            if (currentSearchTerm) {
+                url += `&search=${encodeURIComponent(currentSearchTerm)}`;
+            }
+            
+            const response = await fetch(url);
+            const result = await response.json();
+            
+            spinner.style.display = 'none';
+            
+            if (result.status === 'success' && result.data.length > 0) {
+                displayHadiths(result.data);
+                updatePagination(result.pagination);
+            } else {
+                container.innerHTML = `
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading">No hadiths found</h4>
+                        <p>Try adjusting your search criteria.</p>
+                    </div>
+                `;
+                document.getElementById('paginationNav').style.display = 'none';
+            }
+        } catch (error) {
+            spinner.style.display = 'none';
+            container.innerHTML = `
+                <div class="alert alert-danger" role="alert">
+                    <h4 class="alert-heading">Error loading hadiths</h4>
+                    <p>${error.message}</p>
+                </div>
+            `;
+            console.error('Error:', error);
+        }
+    }
+    
+    function displayHadiths(hadiths) {
+        const container = document.getElementById('hadithsContainer');
+        container.innerHTML = '';
+        
+        hadiths.forEach((hadith, index) => {
+            const card = document.createElement('div');
+            card.className = 'card hadith-card';
+            card.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="hadith-number">${hadith.hadith_number}</div>
+                        <div>
+                            <h5 class="card-title mb-0">Hadith #${hadith.hadith_number}</h5>
+                            <small class="text-muted">ID: ${hadith.id}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="arabic-text">
+                        ${hadith.arabic_text}
+                    </div>
+                    
+                    <div class="english-text">
+                        <strong>English Translation:</strong><br>
+                        ${hadith.english_text}
+                    </div>
+                    
+                    ${hadith.narrator ? `<div class="narrator"><strong>Narrator:</strong> ${hadith.narrator}</div>` : ''}
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-sm btn-success btn-action" onclick="markReviewed(${hadith.id})">
+                            ✓ Mark Reviewed
+                        </button>
+                        <button class="btn btn-sm btn-info btn-action" onclick="toggleReflection(${index})">
+                            💭 Add Note
+                        </button>
+                        <a href="${hadith.source_url}" target="_blank" class="btn btn-sm btn-outline-primary btn-action">
+                            📖 View on Sunnah.com
+                        </a>
+                    </div>
+                    
+                    <div class="reflection-area" id="reflection-${index}">
+                        <textarea class="form-control mt-3" placeholder="Add your personal reflection or notes..." rows="3"></textarea>
+                        <button class="btn btn-sm btn-success mt-2" onclick="saveReflection(${hadith.id}, ${index})">Save Note</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+    
+    function updatePagination(pagination) {
+        const paginationNav = document.getElementById('paginationNav');
+        const paginationInfo = document.getElementById('paginationInfo');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevPageItem = document.getElementById('prevPageItem');
+        const nextPageItem = document.getElementById('nextPageItem');
+        
+        pageInfo.textContent = `Page ${pagination.current_page} of ${pagination.total_pages}`;
+        paginationInfo.textContent = `Showing ${(pagination.current_page - 1) * pagination.per_page + 1} - ${Math.min(pagination.current_page * pagination.per_page, pagination.total_items)} of ${pagination.total_items} hadiths`;
+        
+        if (pagination.total_pages > 1) {
+            paginationNav.style.display = 'block';
+            
+            // Update previous button
+            if (pagination.has_prev) {
+                prevPageItem.classList.remove('disabled');
+            } else {
+                prevPageItem.classList.add('disabled');
+            }
+            
+            // Update next button
+            if (pagination.has_next) {
+                nextPageItem.classList.remove('disabled');
+            } else {
+                nextPageItem.classList.add('disabled');
+            }
+        } else {
+            paginationNav.style.display = 'none';
+        }
+    }
+    
+    function toggleReflection(index) {
+        const area = document.getElementById(`reflection-${index}`);
+        area.classList.toggle('show');
+    }
+    
+    async function markReviewed(hadithId) {
+        // Placeholder - will be implemented in Phase 6
+        alert('Mark reviewed feature will be implemented in Phase 6!');
+    }
+    
+    async function saveReflection(hadithId, index) {
+        // Placeholder - will be implemented in Phase 6
+        alert('Save reflection feature will be implemented in Phase 6!');
+    }
+</script>
+{% endblock %}
