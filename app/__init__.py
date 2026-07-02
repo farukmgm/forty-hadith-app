@@ -38,8 +38,10 @@ def create_app(config_name='development'):
     # Register blueprints
     from app.auth import auth_bp
     from app.main import main_bp
+    from app.hadith_api import hadith_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(hadith_bp)
     
     return app
