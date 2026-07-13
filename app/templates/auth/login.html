@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Forty Hadith App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .phase-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        text-align: center;
+        font-size: 0.95rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .phase-badge strong {
+        display: block;
+        margin-top: 5px;
+        font-size: 1.1rem;
+    }
+    
+    .features-list {
+        background-color: #f0f4f8;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+        font-size: 0.9rem;
+    }
+    
+    .features-list ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    
+    .features-list li {
+        margin: 5px 0;
+        color: #2d3748;
+    }
+    
+    .coming-soon {
+        color: #a0aec0;
+        font-size: 0.85rem;
+        font-style: italic;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <!-- Phase Status Badge -->
+            <div class="phase-badge">
+                📊 <strong>Phase 5 Active</strong>
+                Hadith Management System
+            </div>
+            
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <h1 class="card-title text-center mb-4">🔐 Login</h1>
+                    
+                    <!-- Flash messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'danger' else 'success' }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+                        
+                        <!-- Username/Email -->
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username or Email</label>
+                            {% if form.username.errors %}
+                                {{ form.username(class="form-control is-invalid", placeholder="Enter username or email") }}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.username.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.username(class="form-control", placeholder="Enter username or email") }}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Password -->
+                        <div class="mb-4">
+                            <label for="password" class="form-label">Password</label>
+                            {% if form.password.errors %}
+                                {{ form.password(class="form-control is-invalid") }}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.password.errors %}
+                                        <small>{{ error }}</small><br>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.password(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Remember Me -->
+                        <div class="mb-4 form-check">
+                            {{ form.remember_me(class="form-check-input") }}
+                            <label class="form-check-label" for="remember_me">
+                                Remember me
+                            </label>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <button type="submit" class="btn btn-primary w-100 mb-3">Sign In</button>
+                    </form>
+                    
+                    <!-- Register Link -->
+                    <div class="text-center">
+                        <p>Don't have an account? <a href="{{ url_for('auth.register') }}">Register here</a></p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Current Features -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">✅ Currently Available Features</h5>
+                    <div class="features-list">
+                        <ul>
+                            <li><strong>🔐 Authentication:</strong> User registration and login</li>
+                            <li><strong>📚 Hadith Database:</strong> All 42 hadiths with Arabic & English text</li>
+                            <li><strong>🔍 Search & Filter:</strong> Search by keyword, narrator, or hadith number</li>
+                            <li><strong>📖 Hadith Viewer:</strong> Beautiful display with pagination</li>
+                            <li><strong>📱 Responsive Design:</strong> Works on mobile and desktop</li>
+                            <li><strong>🌙 Dashboard:</strong> User dashboard (placeholder)</li>
+                        </ul>
+                    </div>
+                    
+                    <h5 class="card-title mb-3 mt-4">🚧 Coming Soon</h5>
+                    <div class="features-list">
+                        <ul>
+                            <li><span class="coming-soon">💾 Progress Tracking:</span> Mark hadiths as reviewed/memorized</li>
+                            <li><span class="coming-soon">💭 Personal Reflections:</span> Save your notes on each hadith</li>
+                            <li><span class="coming-soon">📊 Statistics:</span> View your learning stats and streaks</li>
+                            <li><span class="coming-soon">🔥 Streak System:</span> Maintain daily learning streaks</li>
+                            <li><span class="coming-soon">🎯 Hadith of the Day:</span> Random hadith feature</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
