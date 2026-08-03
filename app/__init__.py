@@ -40,10 +40,12 @@ def create_app(config_name='development'):
     from app.main import main_bp
     from app.hadith_api import hadith_bp
     from app.progress import progress_bp
+    from app.stats import stats_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(hadith_bp)
     app.register_blueprint(progress_bp)
+    app.register_blueprint(stats_bp)
     
     return app
