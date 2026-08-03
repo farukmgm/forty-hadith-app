@@ -1,0 +1,826 @@
+{% extends 'base.html' %}
+
+{% block title %}My Progress - Forty Hadith App{% endblock %}
+
+{% block extra_css %}
+<style>
+    .progress-container {
+        padding: 20px 0;
+    }
+
+    .hadith-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+
+    .hadith-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        border-color: #667eea;
+    }
+
+    .hadith-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .hadith-number {
+        background: #667eea;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+
+    .status-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .badge-status {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    .badge-memorized {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .badge-reviewed {
+        background: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+    }
+
+    .badge-not-started {
+        background: #e2e3e5;
+        color: #383d41;
+        border: 1px solid #d6d8db;
+    }
+
+    .hadith-text {
+        margin: 15px 0;
+    }
+
+    .hadith-arabic {
+        font-size: 1.3rem;
+        line-height: 2;
+        text-align: right;
+        direction: rtl;
+        color: #2d3748;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        border-right: 4px solid #667eea;
+    }
+
+    .hadith-english {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #4a5568;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 4px solid #764ba2;
+    }
+
+    .hadith-narrator {
+        font-size: 0.9rem;
+        color: #718096;
+        font-style: italic;
+        margin-top: 10px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+    }
+
+    .btn-action {
+        flex: 1;
+        min-width: 140px;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn-review {
+        background: #667eea;
+        color: white;
+    }
+
+    .btn-review:hover {
+        background: #5568d3;
+        transform: translateY(-2px);
+    }
+
+    .btn-review.active {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .btn-memorize {
+        background: #48bb78;
+        color: white;
+    }
+
+    .btn-memorize:hover {
+        background: #38a169;
+        transform: translateY(-2px);
+    }
+
+    .btn-memorize.active {
+        background: #d4edda;
+        color: #155724;
+        border: 2px solid #155724;
+    }
+
+    .btn-reflection {
+        background: #ed8936;
+        color: white;
+    }
+
+    .btn-reflection:hover {
+        background: #dd6b20;
+        transform: translateY(-2px);
+    }
+
+    .reflection-section {
+        margin-top: 15px;
+        display: none;
+    }
+
+    .reflection-section.active {
+        display: block;
+    }
+
+    .reflection-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-family: Arial, sans-serif;
+        font-size: 1rem;
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .reflection-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    .btn-save {
+        background: #667eea;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .btn-save:hover {
+        background: #5568d3;
+    }
+
+    .btn-cancel {
+        background: #cbd5e0;
+        color: #2d3748;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .btn-cancel:hover {
+        background: #a0aec0;
+    }
+
+    .saved-reflection {
+        background: #edf2f7;
+        padding: 12px;
+        border-radius: 6px;
+        margin-top: 10px;
+        border-left: 4px solid #667eea;
+    }
+
+    .saved-reflection p {
+        margin: 0;
+        color: #2d3748;
+    }
+
+    .reflection-label {
+        font-size: 0.85rem;
+        color: #718096;
+        margin-top: 5px;
+    }
+
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-card.memorized {
+        border-left-color: #48bb78;
+    }
+
+    .stat-card.reviewed {
+        border-left-color: #ffc107;
+    }
+
+    .stat-card.reflection {
+        border-left-color: #ed8936;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+
+    .stat-card.memorized .stat-value {
+        color: #48bb78;
+    }
+
+    .stat-card.reviewed .stat-value {
+        color: #ffc107;
+    }
+
+    .stat-card.reflection .stat-value {
+        color: #ed8936;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        color: #718096;
+        margin-top: 5px;
+    }
+
+    .filter-section {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .filter-btn {
+        padding: 8px 16px;
+        border: 1px solid #cbd5e0;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+
+    .filter-btn.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .filter-btn:hover {
+        border-color: #667eea;
+    }
+
+    .loading-spinner {
+        display: none;
+        text-align: center;
+        padding: 20px;
+    }
+
+    .loading-spinner.show {
+        display: block;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #718096;
+    }
+
+    .empty-state svg {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 20px;
+        opacity: 0.5;
+    }
+
+    @media (max-width: 768px) {
+        .hadith-card {
+            padding: 15px;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-action {
+            min-width: unset;
+        }
+
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+
+        .hadith-arabic {
+            font-size: 1.1rem;
+        }
+
+        .hadith-english {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="progress-container">
+    <div class="container-fluid">
+        <h1 class="mb-4">📊 My Progress</h1>
+
+        <!-- Statistics Summary -->
+        <div class="stats-summary">
+            <div class="stat-card memorized">
+                <div class="stat-value" id="stat-memorized">0</div>
+                <div class="stat-label">Hadiths Memorized</div>
+            </div>
+            <div class="stat-card reviewed">
+                <div class="stat-value" id="stat-reviewed">0</div>
+                <div class="stat-label">Reviewed Today</div>
+            </div>
+            <div class="stat-card reflection">
+                <div class="stat-value" id="stat-reflections">0</div>
+                <div class="stat-label">With Reflections</div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <span style="color: #718096; font-weight: 500;">Filter:</span>
+            <button class="filter-btn active" data-filter="all" onclick="filterProgress('all')">All Hadiths</button>
+            <button class="filter-btn" data-filter="memorized" onclick="filterProgress('memorized')">Memorized</button>
+            <button class="filter-btn" data-filter="reviewed" onclick="filterProgress('reviewed')">Reviewed Today</button>
+            <button class="filter-btn" data-filter="reflection" onclick="filterProgress('reflection')">With Reflection</button>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p>Loading your progress...</p>
+        </div>
+
+        <!-- Hadiths Progress List -->
+        <div id="progressList"></div>
+
+        <!-- Empty State -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+            <h3>No hadiths found</h3>
+            <p>Start reviewing hadiths to track your progress!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 1000;"></div>
+
+<script>
+    // Configuration
+    const API_BASE_URL = '/api';
+    let currentFilter = 'all';
+    let allProgress = [];
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadUserProgress();
+    });
+
+    /**
+     * Load user progress from API
+     */
+    async function loadUserProgress() {
+        const userId = getCurrentUserId();
+        if (!userId) {
+            showToast('Error: User not authenticated', 'error');
+            return;
+        }
+
+        showLoadingSpinner(true);
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/progress/user/${userId}`);
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                allProgress = data.data;
+                updateStatistics(data.statistics);
+                renderProgressList(allProgress);
+            } else {
+                showToast('Error loading progress: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error loading progress:', error);
+            showToast('Error loading progress. Please try again.', 'error');
+        } finally {
+            showLoadingSpinner(false);
+        }
+    }
+
+    /**
+     * Update statistics display
+     */
+    function updateStatistics(stats) {
+        document.getElementById('stat-memorized').textContent = stats.total_memorized;
+        document.getElementById('stat-reviewed').textContent = stats.total_reviewed;
+        
+        // Count hadiths with reflections
+        const withReflections = allProgress.filter(p => p.reflection_text && p.reflection_text.trim()).length;
+        document.getElementById('stat-reflections').textContent = withReflections;
+    }
+
+    /**
+     * Render progress list
+     */
+    function renderProgressList(progressData) {
+        const listContainer = document.getElementById('progressList');
+        const emptyState = document.getElementById('emptyState');
+
+        if (!progressData || progressData.length === 0) {
+            listContainer.innerHTML = '';
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+        listContainer.innerHTML = progressData.map(progress => createProgressCard(progress)).join('');
+
+        // Attach event listeners to buttons
+        attachButtonListeners();
+    }
+
+    /**
+     * Create HTML for a progress card
+     */
+    function createProgressCard(progress) {
+        const isMemorized = progress.is_memorized;
+        const isReviewedToday = progress.is_reviewed_today;
+        const hasReflection = progress.reflection_text && progress.reflection_text.trim();
+
+        let statusBadges = '';
+        if (isMemorized) {
+            statusBadges += '<span class="badge-status badge-memorized">✓ Memorized</span>';
+        }
+        if (isReviewedToday) {
+            statusBadges += '<span class="badge-status badge-reviewed">⭐ Reviewed Today</span>';
+        }
+        if (!isMemorized && !isReviewedToday) {
+            statusBadges += '<span class="badge-status badge-not-started">Not Started</span>';
+        }
+
+        const reflectionSection = hasReflection ? `
+            <div class="saved-reflection">
+                <strong>Your Reflection:</strong>
+                <p>${escapeHtml(progress.reflection_text)}</p>
+                <div class="reflection-label">Last updated: ${new Date(progress.updated_at).toLocaleDateString()}</div>
+            </div>
+        ` : '';
+
+        return `
+            <div class="hadith-card" data-hadith-id="${progress.hadith_id}">
+                <div class="hadith-header">
+                    <span class="hadith-number">Hadith ${progress.hadith_number}</span>
+                    <div class="status-badges">
+                        ${statusBadges}
+                    </div>
+                </div>
+
+                <div class="hadith-text">
+                    <div class="hadith-arabic">${progress.hadith_arabic || 'Loading Arabic text...'}</div>
+                    <div class="hadith-english">${progress.hadith_english || 'Loading English text...'}</div>
+                    <div class="hadith-narrator">— ${progress.hadith_narrator || 'Unknown Narrator'}</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-action btn-review ${isReviewedToday ? 'active' : ''}" 
+                            onclick="markReviewed(${progress.hadith_id})" 
+                            title="Mark as reviewed today">
+                        📖 ${isReviewedToday ? 'Reviewed Today' : 'Mark Reviewed'}
+                    </button>
+                    <button class="btn-action btn-memorize ${isMemorized ? 'active' : ''}" 
+                            onclick="markMemorized(${progress.hadith_id})" 
+                            title="Mark as memorized">
+                        💚 ${isMemorized ? 'Memorized!' : 'Mark Memorized'}
+                    </button>
+                    <button class="btn-action btn-reflection" 
+                            onclick="toggleReflectionEditor(${progress.hadith_id})" 
+                            title="Add or edit reflection">
+                        ✍️ Reflection
+                    </button>
+                </div>
+
+                <div class="reflection-section" id="reflection-editor-${progress.hadith_id}">
+                    <textarea class="reflection-textarea" id="reflection-text-${progress.hadith_id}" 
+                              placeholder="Share your thoughts, insights, or reflections on this hadith...">${escapeHtml(progress.reflection_text || '')}</textarea>
+                    <div class="reflection-buttons">
+                        <button class="btn-save" onclick="saveReflection(${progress.hadith_id})">Save Reflection</button>
+                        <button class="btn-cancel" onclick="toggleReflectionEditor(${progress.hadith_id})">Cancel</button>
+                    </div>
+                </div>
+
+                ${reflectionSection}
+            </div>
+        `;
+    }
+
+    /**
+     * Mark hadith as reviewed
+     */
+    async function markReviewed(haditId) {
+        const userId = getCurrentUserId();
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/progress/mark-reviewed`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hadith_id: haditId
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showToast('Hadith marked as reviewed! 📖', 'success');
+                loadUserProgress();
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error marking as reviewed:', error);
+            showToast('Error marking hadith as reviewed', 'error');
+        }
+    }
+
+    /**
+     * Mark hadith as memorized
+     */
+    async function markMemorized(haditId) {
+        const userId = getCurrentUserId();
+        const progress = allProgress.find(p => p.hadith_id === haditId);
+        const isCurrentlyMemorized = progress && progress.is_memorized;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/progress/mark-memorized`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hadith_id: haditId,
+                    is_memorized: !isCurrentlyMemorized
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showToast(
+                    !isCurrentlyMemorized ? 'Hadith marked as memorized! 💚' : 'Hadith unmarked as memorized',
+                    'success'
+                );
+                loadUserProgress();
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error marking as memorized:', error);
+            showToast('Error marking hadith as memorized', 'error');
+        }
+    }
+
+    /**
+     * Toggle reflection editor
+     */
+    function toggleReflectionEditor(haditId) {
+        const editor = document.getElementById(`reflection-editor-${haditId}`);
+        editor.classList.toggle('active');
+
+        if (editor.classList.contains('active')) {
+            const textarea = document.getElementById(`reflection-text-${haditId}`);
+            textarea.focus();
+        }
+    }
+
+    /**
+     * Save reflection
+     */
+    async function saveReflection(haditId) {
+        const reflection = document.getElementById(`reflection-text-${haditId}`).value;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/progress/save-reflection`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    hadith_id: haditId,
+                    reflection_text: reflection
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                showToast('Reflection saved! ✍️', 'success');
+                toggleReflectionEditor(haditId);
+                loadUserProgress();
+            } else {
+                showToast('Error: ' + data.message, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving reflection:', error);
+            showToast('Error saving reflection', 'error');
+        }
+    }
+
+    /**
+     * Filter progress list
+     */
+    function filterProgress(filter) {
+        currentFilter = filter;
+
+        // Update active button
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.filter === filter) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Filter and render
+        let filtered = allProgress;
+
+        if (filter === 'memorized') {
+            filtered = allProgress.filter(p => p.is_memorized);
+        } else if (filter === 'reviewed') {
+            filtered = allProgress.filter(p => p.is_reviewed_today);
+        } else if (filter === 'reflection') {
+            filtered = allProgress.filter(p => p.reflection_text && p.reflection_text.trim());
+        }
+
+        renderProgressList(filtered);
+    }
+
+    /**
+     * Attach event listeners to dynamically created buttons
+     */
+    function attachButtonListeners() {
+        // Already handled by onclick handlers
+    }
+
+    /**
+     * Get current user ID from the page
+     */
+    function getCurrentUserId() {
+        // This should be set in the base template or retrieved from localStorage
+        return localStorage.getItem('userId') || extractUserIdFromDOM();
+    }
+
+    /**
+     * Extract user ID from DOM if available
+     */
+    function extractUserIdFromDOM() {
+        const userIdElement = document.querySelector('[data-user-id]');
+        return userIdElement ? userIdElement.getAttribute('data-user-id') : null;
+    }
+
+    /**
+     * Show loading spinner
+     */
+    function showLoadingSpinner(show) {
+        const spinner = document.getElementById('loadingSpinner');
+        if (show) {
+            spinner.classList.add('show');
+        } else {
+            spinner.classList.remove('show');
+        }
+    }
+
+    /**
+     * Show toast notification
+     */
+    function showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer');
+        const toastId = `toast-${Date.now()}`;
+
+        const colors = {
+            'success': '#d4edda',
+            'error': '#f8d7da',
+            'info': '#d1ecf1'
+        };
+
+        const borderColors = {
+            'success': '#c3e6cb',
+            'error': '#f5c6cb',
+            'info': '#bee5eb'
+        };
+
+        const toast = document.createElement('div');
+        toast.id = toastId;
+        toast.style.cssText = `
+            background: ${colors[type]};
+            border: 1px solid ${borderColors[type]};
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            animation: slideIn 0.3s ease;
+            word-break: break-word;
+        `;
+        toast.textContent = message;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    /**
+     * Escape HTML special characters
+     */
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Add animation styles
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
+{% endblock %}
