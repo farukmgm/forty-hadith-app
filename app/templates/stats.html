@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Statistics — Forty Hadith</title>
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <style>
+      /* Page-level styling and small animations */
+      .streak-card {
+        border-radius: 12px;
+        transition: transform .18s ease, box-shadow .18s ease;
+      }
+      .streak-card.pulse {
+        animation: pulse 1.7s infinite;
+      }
+      @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(13,110,253,0.20); transform: translateY(0); }
+        50% { box-shadow: 0 8px 30px rgba(13,110,253,0.12); transform: translateY(-4px); }
+        100% { box-shadow: 0 0 0 0 rgba(13,110,253,0); transform: translateY(0); }
+      }
+
+      .badge-achievement {
+        width: 72px;
+        height: 72px;
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        border-radius:12px;
+        background:linear-gradient(135deg,#f8f9fa,#e9f2ff);
+        margin:6px;
+        transition: transform .12s ease;
+      }
+      .badge-achievement:hover { transform: translateY(-6px); }
+
+      .progress {
+        height: 14px;
+        border-radius: 999px;
+        overflow: hidden;
+      }
+
+      /* small responsive adjustments */
+      @media (max-width: 575.98px) {
+        .streak-stats { flex-direction: column; gap: .8rem; }
+      }
+
+      .milestone-msg {
+        font-weight: 600;
+        color: #0b5ed7;
+      }
+
+      .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 4px;
+      }
+      .cal-cell {
+        width: 100%;
+        padding-bottom: 100%;
+        position: relative;
+        border-radius: 4px;
+        background: #f1f3f5;
+      }
+      .cal-cell > span {
+        position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:10px; color:#495057;
+      }
+    </style>
+  </head>
+  <body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="/">Forty Hadith</a>
+        <div class="d-flex">
+          <a href="/dashboard" class="btn btn-outline-secondary btn-sm">Dashboard</a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="container my-4">
+      <header class="d-flex align-items-end justify-content-between mb-3">
+        <div>
+          <h1 class="h3 mb-0">Your Statistics</h1>
+          <small class="text-muted">Progress, streaks, achievements and activity</small>
+        </div>
+        <div class="text-end">
+          <small id="last-updated" class="text-muted">Loading...</small>
+        </div>
+      </header>
+
+      <!-- Top row: Streaks and totals -->
+      <section class="row g-3 mb-4">
+        <div class="col-md-6">
+          <div class="card p-3 streak-card h-100">
+            <div class="d-flex streak-stats align-items-center justify-content-between">
+              <div>
+                <h5 class="mb-1">Current Streak</h5>
+                <div id="current-streak" class="display-6 fw-bold text-primary">—</div>
+                <small class="text-muted">days in a row</small>
+              </div>
+              <div class="text-center">
+                <div id="streak-visual" class="p-3 bg-white rounded-circle shadow-sm" style="width:110px;height:110px;display:flex;align-items:center;justify-content:center;">
+                  <div>
+                    <div id="streak-emoji" style="font-size:28px;">🔥</div>
+                    <small class="d-block text-muted">Keep it up</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3">
+              <h6 class="mb-1">Longest Streak: <span id="longest-streak" class="fw-semibold">—</span> days</h6>
+              <div class="progress" aria-hidden="true">
+                <div id="longest-streak-bar" class="progress-bar bg-info" role="progressbar" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card p-3 h-100">
+            <h5 class="mb-2">Hadiths Memorized</h5>
+
+            <div class="mb-3">
+              <div class="d-flex justify-content-between mb-1">
+                <small>Total memorized</small>
+                <small id="total-hadiths" class="fw-semibold">—</small>
+              </div>
+              <div class="progress mb-2">
+                <div id="total-progress" class="progress-bar bg-success" role="progressbar" style="width:0%"></div>
+              </div>
+              <small class="text-muted" id="total-goal-text">Goal: — hadiths</small>
+            </div>
+
+            <div id="level-breakdown">
+              <!-- dynamic breakdown (e.g., by chapter/level) inserted here -->
+            </div>
+
+            <div class="mt-3">
+              <h6 class="mb-2">Achievements</h6>
+              <div id="achievements" class="d-flex flex-wrap">
+                <!-- badges inserted here -->
+                <div class="text-muted">Loading achievements…</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- Motivational message -->
+      <section class="mb-4">
+        <div class="card p-3">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <svg width="42" height="42" viewBox="0 0 24 24" fill="#0b5ed7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 2l2.9 6.3L22 9.3l-5 4.2L18 22l-6-3.4L6 22l1-8.5L2 9.3l7.1-1L12 2z"></path></svg>
+            </div>
+            <div>
+              <div id="milestone-message" class="milestone-msg">Loading milestone message…</div>
+              <div id="milestone-sub" class="text-muted small">Stick with the daily reviews and watch your memory grow.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activity chart + calendar -->
+      <section class="row g-3 mb-4">
+        <div class="col-lg-8">
+          <div class="card p-3 h-100">
+            <h6 class="mb-3">Review Activity (last 30 days)</h6>
+            <canvas id="activityChart" height="140" aria-label="Review activity chart"></canvas>
+          </div>
+        </div>
+
+        <div class="col-lg-4">
+          <div class="card p-3 h-100">
+            <h6 class="mb-3">Recent Activity Calendar</h6>
+            <div id="calendar" class="calendar-grid" aria-hidden="false">
+              <!-- Simple 7x5 grid of day cells (placeholder heatmap). JS will populate intensity. -->
+            </div>
+            <small class="text-muted d-block mt-2">Green = more reviews. Hover for counts (desktop).</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- Leaderboard (optional) -->
+      <section class="mb-5">
+        <div class="card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Leaderboard</h6>
+            <small class="text-muted">Global top learners</small>
+          </div>
+          <div id="leaderboard" class="list-group list-group-flush">
+            <div class="list-group-item text-muted">Loading leaderboard…</div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="text-center text-muted small mb-5">
+        Built for consistent reviews — keep going one hadith at a time.
+      </footer>
+    </main>
+
+    <script>
+      // Use server-side passed user id when available. Route should pass user_id
+      const USER_ID = {{ user_id if user_id is defined else 'null' }};
+
+      // API endpoints
+      function api(path) {
+        // if user id null, try to use current user on server side - some setups rely on session auth
+        return path.replace('{user_id}', USER_ID !== null ? USER_ID : 'me');
+      }
+
+      function formatDateTime(iso) {
+        try {
+          const d = new Date(iso);
+          return d.toLocaleString();
+        } catch (e) {
+          return iso;
+        }
+      }
+
+      // DOM references
+      const currentStreakEl = document.getElementById('current-streak');
+      const longestStreakEl = document.getElementById('longest-streak');
+      const longestStreakBar = document.getElementById('longest-streak-bar');
+      const streakVisual = document.getElementById('streak-visual');
+      const streakEmoji = document.getElementById('streak-emoji');
+      const totalHadithsEl = document.getElementById('total-hadiths');
+      const totalProgressEl = document.getElementById('total-progress');
+      const totalGoalText = document.getElementById('total-goal-text');
+      const achievementsEl = document.getElementById('achievements');
+      const milestoneMessage = document.getElementById('milestone-message');
+      const milestoneSub = document.getElementById('milestone-sub');
+      const lastUpdatedEl = document.getElementById('last-updated');
+      const levelBreakdown = document.getElementById('level-breakdown');
+      const calendarEl = document.getElementById('calendar');
+      const leaderboardEl = document.getElementById('leaderboard');
+
+      // Chart instance holder
+      let activityChart = null;
+
+      // Helper: create badge element
+      function createBadge(a) {
+        const el = document.createElement('div');
+        el.className = 'badge-achievement shadow-sm text-center';
+        el.setAttribute('title', a.title || 'Achievement');
+        el.innerHTML = `<div style="font-size:22px">${a.icon || '🏆'}</div><small style="display:block;font-size:11px;margin-top:4px">${a.label || ''}</small>`;
+        return el;
+      }
+
+      function showMilestoneMessage(total) {
+        // Customize milestones as needed
+        const milestones = [
+          { threshold: 1, msg: "Nice start — your first hadith is learned!", sub: "Celebrate the beginning of a habit." },
+          { threshold: 5, msg: "Good momentum — 5 hadiths nailed!", sub: "You're building consistent practice." },
+          { threshold: 10, msg: "10 done — keep the streak alive!", sub: "Small wins compound over time." },
+          { threshold: 25, msg: "Quarter milestone — 25 memorized!", sub: "You're making meaningful progress." },
+          { threshold: 40, msg: "Forty reached — excellence!", sub: "An important milestone — well done." },
+          { threshold: 100, msg: "Centurion — 100 hadiths!", sub: "Outstanding dedication." }
+        ];
+        let chosen = milestones[0];
+        for (const m of milestones) {
+          if (total >= m.threshold) chosen = m;
+          else break;
+        }
+        milestoneMessage.textContent = chosen.msg;
+        milestoneSub.textContent = chosen.sub;
+      }
+
+      // Build simple calendar placeholder grid (35 cells)
+      function buildCalendarGrid() {
+        calendarEl.innerHTML = '';
+        for (let i = 0; i < 35; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'cal-cell';
+          const span = document.createElement('span');
+          span.textContent = '';
+          cell.appendChild(span);
+          calendarEl.appendChild(cell);
+        }
+      }
+
+      // Populate heatmap intensity (counts is array of 35 numbers)
+      function populateCalendar(counts) {
+        const cells = calendarEl.children;
+        for (let i = 0; i < cells.length; i++) {
+          const c = cells[i];
+          const v = counts && counts[i] ? counts[i] : 0;
+          const alpha = Math.min(0.85, 0.08 + v * 0.12);
+          c.style.background = v ? `rgba(16,185,129,${alpha})` : '#f1f3f5';
+          c.firstChild.textContent = v > 0 ? v : '';
+          c.title = v ? `${v} review${v>1?'s':''}` : 'No reviews';
+        }
+      }
+
+      async function fetchStats() {
+        try {
+          const userPath = api('/api/stats/user/{user_id}');
+          const r = await fetch(userPath, { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('Failed to fetch user stats');
+          const data = await r.json();
+
+          // Expected shape (example): { current_streak, longest_streak, total_memorized, goal, achievements:[], breakdown: {...}, last_updated }
+          currentStreakEl.textContent = data.current_streak ?? 0;
+          longestStreakEl.textContent = data.longest_streak ?? 0;
+
+          // Visual cue
+          if ((data.current_streak ?? 0) >= 7) {
+            streakVisual.classList.add('pulse');
+            streakEmoji.textContent = '🔥';
+          } else if ((data.current_streak ?? 0) >= 3) {
+            streakEmoji.textContent = '✨';
+            streakVisual.classList.remove('pulse');
+          } else {
+            streakEmoji.textContent = '🙂';
+            streakVisual.classList.remove('pulse');
+          }
+
+          // longest streak bar relative to some max (e.g., cap at 100)
+          const longestPct = Math.min(100, Math.round(((data.longest_streak ?? 0) / Math.max(1, (data.goal || 40))) * 100));
+          longestStreakBar.style.width = `${longestPct}%`;
+
+          // totals
+          totalHadithsEl.textContent = (data.total_memorized ?? 0);
+          const goal = data.goal ?? 40;
+          const pct = Math.round(((data.total_memorized ?? 0) / goal) * 100);
+          totalProgressEl.style.width = `${Math.min(100, pct)}%`;
+          totalGoalText.textContent = `Goal: ${goal} hadiths`;
+
+          // achievements
+          achievementsEl.innerHTML = '';
+          if (data.achievements && data.achievements.length) {
+            data.achievements.forEach(a => achievementsEl.appendChild(createBadge(a)));
+          } else {
+            achievementsEl.innerHTML = '<div class="text-muted">No achievements yet — keep memorizing!</div>';
+          }
+
+          // breakdown (optional)
+          levelBreakdown.innerHTML = '';
+          if (data.breakdown) {
+            const keys = Object.keys(data.breakdown);
+            keys.forEach(k=>{
+              const val = data.breakdown[k];
+              const node = document.createElement('div');
+              node.className = 'mb-2';
+              node.innerHTML = `<div class="d-flex justify-content-between"><small>${k}</small><small class="fw-semibold">${val.count}</small></div>
+                <div class="progress"><div class="progress-bar" style="width:${Math.round(val.percent)}%"></div></div>`;
+              levelBreakdown.appendChild(node);
+            });
+          }
+
+          // Milestone message
+          showMilestoneMessage(data.total_memorized ?? 0);
+
+          // last updated
+          lastUpdatedEl.textContent = data.last_updated ? `Updated ${formatDateTime(data.last_updated)}` : 'Updated just now';
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function fetchActivityAndRenderChart() {
+        try {
+          const path = api('/api/stats/user/{user_id}/activity');
+          const r = await fetch(path, { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('Failed to fetch activity');
+          const data = await r.json();
+          // Expect data to be array of { date: 'YYYY-MM-DD', reviews: N }
+          const labels = data.map(d => d.date);
+          const counts = data.map(d => d.reviews);
+          // Render Chart.js line chart
+          const ctx = document.getElementById('activityChart').getContext('2d');
+          if (activityChart) activityChart.destroy();
+          activityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+              labels,
+              datasets: [{
+                label: 'Reviews',
+                data: counts,
+                borderColor: '#0d6efd',
+                backgroundColor: (ctx) => {
+                  const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 200);
+                  g.addColorStop(0, 'rgba(13,110,253,0.18)');
+                  g.addColorStop(1, 'rgba(13,110,253,0.02)');
+                  return g;
+                },
+                fill: true,
+                tension: 0.28,
+                pointRadius: 3
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: '#f1f3f5' } }
+              }
+            }
+          });
+
+          // Build a 35-cell calendar and populate with last 35 days counts (simple downsample)
+          buildCalendarGrid();
+          // For heatmap, map last 35 days counts into calendar order
+          const heatCounts = Array.from({length:35}, (_,i)=>0);
+          // If data length >= 35, use the last 35
+          const lastN = data.slice(-35);
+          lastN.forEach((d,i)=>heatCounts[i] = d.reviews || 0);
+          populateCalendar(heatCounts);
+
+        } catch (err) {
+          console.error(err);
+          // Show empty chart / fallback
+        }
+      }
+
+      async function fetchLeaderboard() {
+        try {
+          const r = await fetch('/api/stats/leaderboard', { credentials: 'same-origin' });
+          if (!r.ok) throw new Error('Failed to get leaderboard');
+          const list = await r.json();
+          leaderboardEl.innerHTML = '';
+          if (list && list.length) {
+            list.slice(0,10).forEach((u, idx) => {
+              const item = document.createElement('div');
+              item.className = 'list-group-item d-flex justify-content-between align-items-center';
+              item.innerHTML = `<div><strong>${idx+1}. ${u.name}</strong><div class="text-muted small">${u.region||''}</div></div><div class="fw-bold">${u.points ?? u.total_memorized ?? 0}</div>`;
+              leaderboardEl.appendChild(item);
+            });
+          } else {
+            leaderboardEl.innerHTML = '<div class="list-group-item text-muted">No leaderboard data available.</div>';
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }
+
+      async function init() {
+        // Kick off fetches
+        await Promise.allSettled([fetchStats(), fetchActivityAndRenderChart(), fetchLeaderboard()]);
+      }
+
+      // Polling / refresh button could be added. For now refresh on visibility change
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) init();
+      });
+
+      // Start
+      init();
+    </script>
+
+    <!-- Bootstrap JS (optional for interactive bits) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+</html>
