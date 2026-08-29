@@ -37,4 +37,4 @@ def progress():
 @login_required
 def stats():
     """User statistics page route"""
-    return render_template('stats.html', user=current_user)
+    return render_template('stats.html', user=current_user, user_id=current_user.id)
