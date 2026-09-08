@@ -338,7 +338,7 @@
     <!-- Set user ID in localStorage for API calls -->
     {% if current_user.is_authenticated %}
     <script>
-        localStorage.setItem('userId', {{ current_user.id }});
+        localStorage.setItem('userId', {{ current_user.id | tojson }});
     </script>
     {% endif %}
 
