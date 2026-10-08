@@ -87,6 +87,7 @@
         margin-top: 10px;
         display: flex;
         gap: 10px;
+        flex-wrap: wrap;
     }
     
     .reflection-area {
@@ -96,6 +97,53 @@
     
     .reflection-area.show {
         display: block;
+    }
+
+    .toast-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 300px;
+        padding: 15px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: 500;
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+    }
+
+    .toast-notification.success {
+        background-color: #28a745;
+    }
+
+    .toast-notification.error {
+        background-color: #dc3545;
+    }
+
+    .toast-notification.info {
+        background-color: #17a2b8;
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
     }
 </style>
 {% endblock %}
@@ -158,12 +206,22 @@
     let currentSearchTerm = '';
     const HADITHS_PER_PAGE = 5;
     
-    // Load hadiths on page load
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+    
     document.addEventListener('DOMContentLoaded', function() {
         loadHadiths();
     });
     
-    // Event listeners
     document.getElementById('searchBtn').addEventListener('click', function() {
         currentSearchTerm = document.getElementById('searchInput').value;
         currentPage = 1;
@@ -206,13 +264,12 @@
         container.innerHTML = '';
         
         try {
-            // Build API URL
             let url = `/api/hadiths?page=${currentPage}&per_page=${HADITHS_PER_PAGE}`;
             if (currentSearchTerm) {
                 url += `&search=${encodeURIComponent(currentSearchTerm)}`;
             }
             
-            const response = await fetch(url);
+            const response = await fetch(url, { credentials: 'same-origin' });
             const result = await response.json();
             
             spinner.style.display = 'none';
@@ -273,6 +330,9 @@
                         <button class="btn btn-sm btn-success btn-action" onclick="markReviewed(${hadith.id})">
                             ✓ Mark Reviewed
                         </button>
+                        <button class="btn btn-sm btn-warning btn-action" onclick="markMemorized(${hadith.id})">
+                            🧠 Mark Memorized
+                        </button>
                         <button class="btn btn-sm btn-info btn-action" onclick="toggleReflection(${index})">
                             💭 Add Note
                         </button>
@@ -282,7 +342,7 @@
                     </div>
                     
                     <div class="reflection-area" id="reflection-${index}">
-                        <textarea class="form-control mt-3" placeholder="Add your personal reflection or notes..." rows="3"></textarea>
+                        <textarea class="form-control mt-3" id="reflection-text-${index}" placeholder="Add your personal reflection or notes..." rows="3"></textarea>
                         <button class="btn btn-sm btn-success mt-2" onclick="saveReflection(${hadith.id}, ${index})">Save Note</button>
                     </div>
                 </div>
@@ -299,19 +359,17 @@
         const nextPageItem = document.getElementById('nextPageItem');
         
         pageInfo.textContent = `Page ${pagination.current_page} of ${pagination.total_pages}`;
-        paginationInfo.textContent = `Showing ${(pagination.current_page - 1) * pagination.per_page + 1} - ${Math.min(pagination.current_page * pagination.per_page, pagination.total_items)} of ${pagination.total_items} hadiths`;
+        paginationInfo.textContent = `Showing ${(pagination.current_page - 1) * pagination.per_page + 1} - ${Math.min(pagination.current_page * pagination.per_page, pagination.total_items)} of ${pagination.total_items}`;
         
         if (pagination.total_pages > 1) {
             paginationNav.style.display = 'block';
             
-            // Update previous button
             if (pagination.has_prev) {
                 prevPageItem.classList.remove('disabled');
             } else {
                 prevPageItem.classList.add('disabled');
             }
             
-            // Update next button
             if (pagination.has_next) {
                 nextPageItem.classList.remove('disabled');
             } else {
@@ -328,13 +386,84 @@
     }
     
     async function markReviewed(hadithId) {
-        // Placeholder - will be implemented in Phase 6
-        alert('Mark reviewed feature will be implemented in Phase 6!');
+        try {
+            const response = await fetch('/api/progress/mark-reviewed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ hadith_id: hadithId }),
+                credentials: 'same-origin'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                showToast('✓ Hadith marked as reviewed!', 'success');
+            } else {
+                showToast(`Error: ${result.message || 'Unable to mark as reviewed'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error marking as reviewed:', error);
+            showToast('Failed to mark as reviewed', 'error');
+        }
+    }
+
+    async function markMemorized(hadithId) {
+        try {
+            const response = await fetch('/api/progress/mark-memorized', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ hadith_id: hadithId, is_memorized: true }),
+                credentials: 'same-origin'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                showToast('🧠 Hadith marked as memorized!', 'success');
+            } else {
+                showToast(`Error: ${result.message || 'Unable to mark as memorized'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error marking as memorized:', error);
+            showToast('Failed to mark as memorized', 'error');
+        }
     }
     
     async function saveReflection(hadithId, index) {
-        // Placeholder - will be implemented in Phase 6
-        alert('Save reflection feature will be implemented in Phase 6!');
+        const reflectionText = document.getElementById(`reflection-text-${index}`).value;
+        
+        if (!reflectionText.trim()) {
+            showToast('Please enter a reflection before saving', 'info');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/progress/save-reflection', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ hadith_id: hadithId, reflection_text: reflectionText }),
+                credentials: 'same-origin'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.status === 'success') {
+                showToast('✓ Reflection saved!', 'success');
+                document.getElementById(`reflection-text-${index}`).value = '';
+                document.getElementById(`reflection-${index}`).classList.remove('show');
+            } else {
+                showToast(`Error: ${result.message || 'Unable to save reflection'}`, 'error');
+            }
+        } catch (error) {
+            console.error('Error saving reflection:', error);
+            showToast('Failed to save reflection', 'error');
+        }
     }
 </script>
 {% endblock %}
