@@ -202,11 +202,19 @@ def get_user_stats(user_id):
             "longest_streak": <int>,
             "last_review_date": "YYYY-MM-DD",
             "updated_at": "ISO timestamp",
-            "achievements": {
-                "memorized_all_42": <bool>,
-                "reviewed_all_42_today": <bool>,
-                "seven_day_streak": <bool>,
-                "thirty_day_streak": <bool>
+            "goal": <int>,
+            "achievements": [
+                {
+                    "icon": "<string>",
+                    "label": "<string>",
+                    "title": "<string>"
+                }
+            ],
+            "breakdown": {
+                "<level_name>": {
+                    "count": <int>,
+                    "percent": <float>
+                }
             }
         }
     }
@@ -225,17 +233,70 @@ def get_user_stats(user_id):
             return jsonify({
                 'status': 'error',
                 'message': 'Unauthorized: You can only view your own statistics'
-            }), 403
+            }), 404
         
         # Calculate fresh statistics
         user_stats = calculate_user_statistics(user_id)
         
-        # Check achievements
-        achievements = {
-            'memorized_all_42': user_stats.total_memorized == 42,
-            'reviewed_all_42_today': user_stats.total_reviewed == 42,
-            'seven_day_streak': user_stats.current_streak >= 7,
-            'thirty_day_streak': user_stats.current_streak >= 30
+        # Check achievements - return as array for easier rendering
+        achievements = []
+        if user_stats.total_memorized >= 1:
+            achievements.append({
+                'icon': '📖',
+                'label': 'First Hadith',
+                'title': 'Memorized your first hadith'
+            })
+        if user_stats.total_memorized >= 5:
+            achievements.append({
+                'icon': '🌟',
+                'label': '5 Hadiths',
+                'title': 'Memorized 5 hadiths'
+            })
+        if user_stats.total_memorized >= 10:
+            achievements.append({
+                'icon': '⭐',
+                'label': '10 Hadiths',
+                'title': 'Memorized 10 hadiths'
+            })
+        if user_stats.total_memorized >= 25:
+            achievements.append({
+                'icon': '🏅',
+                'label': '25 Hadiths',
+                'title': 'Memorized 25 hadiths'
+            })
+        if user_stats.total_memorized >= 40:
+            achievements.append({
+                'icon': '🎯',
+                'label': '40 Hadiths Complete!',
+                'title': 'Memorized all 40 hadiths!'
+            })
+        if user_stats.current_streak >= 7:
+            achievements.append({
+                'icon': '🔥',
+                'label': '7-Day Streak',
+                'title': 'Maintained a 7-day streak'
+            })
+        if user_stats.current_streak >= 30:
+            achievements.append({
+                'icon': '🏆',
+                'label': '30-Day Streak',
+                'title': 'Maintained a 30-day streak'
+            })
+        
+        # Build breakdown data
+        total = UserProgress.query.filter_by(user_id=user_id).count()
+        memorized = user_stats.total_memorized
+        reviewed = user_stats.total_reviewed
+        
+        breakdown = {
+            'Memorized': {
+                'count': memorized,
+                'percent': (memorized / 40 * 100) if 40 > 0 else 0
+            },
+            'In Progress': {
+                'count': total - memorized,
+                'percent': ((total - memorized) / 40 * 100) if 40 > 0 else 0
+            }
         }
         
         return jsonify({
@@ -248,8 +309,10 @@ def get_user_stats(user_id):
                 'current_streak': user_stats.current_streak,
                 'longest_streak': user_stats.longest_streak,
                 'last_review_date': user_stats.last_review_date.isoformat() if user_stats.last_review_date else None,
-                'updated_at': user_stats.updated_at.isoformat(),
-                'achievements': achievements
+                'last_updated': user_stats.updated_at.isoformat(),
+                'goal': 42,
+                'achievements': achievements,
+                'breakdown': breakdown
             }
         }), 200
         
@@ -401,8 +464,9 @@ def get_leaderboard():
             {
                 "rank": <int>,
                 "user_id": <int>,
-                "username": "<string>",
-                "value": <int>
+                "name": "<string>",
+                "value": <int>,
+                "region": "<string>"
             },
             ...
         ]
@@ -423,6 +487,9 @@ def get_leaderboard():
             ).group_by(User.id, User.username).order_by(
                 func.count(UserProgress.id).desc()
             ).limit(limit).all()
+            
+            # Get region info (mock - replace with actual region data if available)
+            region = "Global"
         
         elif metric == 'streak':
             # Top users by current streak
@@ -433,6 +500,7 @@ def get_leaderboard():
             ).join(UserStats, User.id == UserStats.user_id).order_by(
                 UserStats.current_streak.desc()
             ).limit(limit).all()
+            region = "Global"
         
         elif metric == 'reviewed':
             # Top users by total reviews
@@ -445,6 +513,7 @@ def get_leaderboard():
             ).group_by(User.id, User.username).order_by(
                 func.count(UserProgress.id).desc()
             ).limit(limit).all()
+            region = "Global"
         
         else:
             return jsonify({
@@ -452,22 +521,18 @@ def get_leaderboard():
                 'message': f'Invalid metric: {metric}'
             }), 400
         
-        # Format results
+        # Format results - matching HTML expectations
         leaderboard = []
         for rank, (user_id, username, value) in enumerate(results, 1):
             leaderboard.append({
                 'rank': rank,
                 'user_id': user_id,
-                'username': username,
-                'value': value
+                'name': username,
+                'value': value,
+                'region': region
             })
         
-        return jsonify({
-            'status': 'success',
-            'metric': metric,
-            'limit': limit,
-            'data': leaderboard
-        }), 200
+        return jsonify(leaderboard), 200
         
     except ValueError:
         return jsonify({
@@ -495,19 +560,13 @@ def get_user_activity(user_id):
     - days: Number of past days to retrieve (default: 30)
     
     Response:
-    {
-        "status": "success",
-        "user_id": <int>,
-        "days": <int>,
-        "data": [
-            {
-                "date": "YYYY-MM-DD",
-                "hadiths_reviewed": <int>,
-                "review_count": <int>
-            },
-            ...
-        ]
-    }
+    [
+        {
+            "date": "YYYY-MM-DD",
+            "reviews": <int>
+        },
+        ...
+    ]
     """
     try:
         # Verify user exists
@@ -534,22 +593,20 @@ def get_user_activity(user_id):
             DailyReview.review_date >= start_date
         ).order_by(DailyReview.review_date.desc()).all()
         
-        # Format response
+        # Format response - matching HTML expectations
         activity_data = []
         for review in daily_reviews:
             hadith_ids = review.hadith_ids_reviewed.split(',') if review.hadith_ids_reviewed else []
-            activity_data.append({
-                'date': review.review_date.isoformat(),
-                'hadiths_reviewed': len(hadith_ids),
-                'review_count': len(hadith_ids)
-            })
+            # Count non-empty hadith IDs
+            review_count = len([h for h in hadith_ids if h.strip()])
+            if review_count > 0:
+                activity_data.append({
+                    'date': review.review_date.isoformat(),
+                    'reviews': review_count
+                })
         
-        return jsonify({
-            'status': 'success',
-            'user_id': user_id,
-            'days': days,
-            'data': activity_data
-        }), 200
+        # Return array directly (matches HTML expectation)
+        return jsonify(activity_data), 200
         
     except ValueError:
         return jsonify({
