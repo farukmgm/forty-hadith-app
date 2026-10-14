@@ -6,6 +6,7 @@ Handles user progress tracking for hadiths (reviews, memorization, reflections)
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
+from app.stats import log_daily_review
 from app.models import UserProgress, Hadith, User, UserStats
 from datetime import datetime, date
 from sqlalchemy.exc import IntegrityError
@@ -77,7 +78,7 @@ def mark_reviewed():
         progress.is_reviewed_today = True
         progress.last_reviewed_at = datetime.utcnow()
         progress.reviewed_count = (progress.reviewed_count or 0) + 1
-        
+        log_daily_reivew(user_id, hadith_id)
         db.session.commit()
         
         return jsonify({
@@ -161,6 +162,7 @@ def mark_memorized():
         
         # Update memorization status
         progress.is_memorized = is_memorized
+        log_daily_review(user_id, hadith_id)
         
         db.session.commit()
         
@@ -244,6 +246,7 @@ def save_reflection():
         
         # Save reflection
         progress.reflection_text = reflection_text
+        log_daily_review(user_id, hadith_id)
         
         db.session.commit()
         
