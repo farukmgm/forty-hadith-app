@@ -78,7 +78,7 @@ def mark_reviewed():
         progress.is_reviewed_today = True
         progress.last_reviewed_at = datetime.utcnow()
         progress.reviewed_count = (progress.reviewed_count or 0) + 1
-        log_daily_reiview(user_id, hadith_id)
+        log_daily_review(user_id, hadith_id)
         
         db.session.commit()
         
