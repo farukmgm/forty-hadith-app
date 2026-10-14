@@ -44,6 +44,11 @@
         font-size: 0.85rem;
         font-style: italic;
     }
+
+    /* Ensure the eye button styles align properly inside the input group */
+    .input-group .btn {
+        z-index: 4;
+    }    
 </style>
 {% endblock %}
 
@@ -91,19 +96,27 @@
                             {% endif %}
                         </div>
                         
-                        <!-- Password -->
+                        <!-- Password with Visibility Toggle -->
                         <div class="mb-4">
                             <label for="password" class="form-label">Password</label>
-                            {% if form.password.errors %}
-                                {{ form.password(class="form-control is-invalid") }}
-                                <div class="invalid-feedback d-block">
-                                    {% for error in form.password.errors %}
-                                        <small>{{ error }}</small><br>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                {{ form.password(class="form-control") }}
-                            {% endif %}
+                            <div class="input-group">
+                                {% if form.password.errors %}
+                                    {{ form.password(class="form-control is-invalid", id="password") }}
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        👁️
+                                    </button>
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.password.errors %}
+                                            <small>{{ error }}</small><br>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    {{ form.password(class="form-control", id="password") }}
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        👁️
+                                    </button>
+                                {% endif %}
+                            </div>
                         </div>
                         
                         <!-- Remember Me -->
@@ -155,4 +168,25 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript to run the toggle functionality -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.getElementById('togglePassword');
+
+        if (toggleButton && passwordInput) {
+            toggleButton.addEventListener('click', function () {
+                // Check current input type
+                const isPassword = passwordInput.getAttribute('type') === 'password';
+                
+                // Toggle the attribute
+                passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+                
+                // Toggle button presentation text/icon if desired (optional)
+                this.textContent = isPassword ? '🙈' : '👁️';
+            });
+        }
+    });
+</script>
 {% endblock %}
